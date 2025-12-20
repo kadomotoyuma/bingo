@@ -129,4 +129,165 @@
         #spin-btn:active { margin-top: 6px; border-bottom-width: 0px; box-shadow: none; }
         
         #spin-btn:disabled { 
-            background-
+            background-color: #ccc; border-bottom-color: #999; 
+            cursor: not-allowed; margin-top: 0;
+        }
+
+        #reset-btn {
+            background-color: transparent; 
+            color: #ff3b30;
+            border: 2px solid #ff3b30; 
+            font-size: 1rem; padding: 10px 20px;
+            box-shadow: none;
+        }
+        #reset-btn:hover { background-color: #fff0f0; }
+
+    </style>
+</head>
+<body>
+
+    <div id="history-container">
+        <h2>これまで出た数字>これ>こ
+        <div class="history-list" id="history-list"></div>
+    </div>
+
+    <div id="main-display">
+        <div id="current-number">00</div>
+        <div id="status-message">READY?</div>
+        <div id="debug-info">Remaining: 75</div>
+    </div>
+
+    <div id="controls">
+        <button id="reset-btn" onclick="resetGame()">RESET</button>
+        <button id="spin-btn" onclick="spin()">SPIN!</button>
+    </div>
+
+    <script>
+        /* ロジックは安全性が確認された v2 を継承しています 
+           （重複なし・範囲内保証・ログ出力機能付き）
+        */
+
+        const MAX_NUMBER = 75;
+        const MIN_NUMBER = 1;
+        
+        let availableNumbers = [];
+        let history = [];
+        let isSpinning = false;
+
+        function initGame() {
+            availableNumbers = [];
+            for (let i = MIN_NUMBER; i <= MAX_NUMBER; i++) {
+                availableNumbers.push(i);
+            }
+            history = [];
+            isSpinning = false;
+            
+            updateHistoryUI();
+            document.getElementById('current-number').textContent = "00";
+            document.getElementById('status-message').textContent = "READY?";
+            document.getElementById('spin-btn').disabled = false;
+            document.getElementById('spin-btn').textContent = "SPIN!";
+            updateDebugInfo();
+        }
+
+        function spin() {
+            if (isSpinning) return;
+            if (availableNumbers.length === 0) return;
+
+            isSpinning = true;
+            document.getElementById('spin-btn').disabled = true;
+            document.getElementById('status-message').textContent = ""; // 回転中はメッセージ消す
+
+            let count = 0;
+            const display = document.getElementById('current-number');
+            
+            // ドラムロールのような演出（少しずつ遅くする）
+            let speed = 50;
+            const runAnimation = () => {
+                const tempIndex = Math.floor(Math.random() * availableNumbers.length);
+                display.textContent = availableNumbers[tempIndex];
+                count++;
+
+                if (count < 20) {
+                    setTimeout(runAnimation, speed);
+                } else if (count < 30) {
+                    speed += 20; // 少し遅くする
+                    setTimeout(runAnimation, speed);
+                } else {
+                    finalizeNumber();
+                }
+            };
+            runAnimation();
+        }
+
+        function finalizeNumber() {
+            const winnerIndex = Math.floor(Math.random() * availableNumbers.length);
+            const winnerNumber = availableNumbers[winnerIndex];
+
+            // 安全装置
+            if (winnerNumber === undefined || winnerNumber < MIN_NUMBER || winnerNumber > MAX_NUMBER) {
+                alert("Error detected."); return;
+            }
+
+            availableNumbers.splice(winnerIndex, 1);
+            history.unshift(winnerNumber);
+
+            displayResult(winnerNumber);
+            updateHistoryUI();
+            updateDebugInfo();
+            
+            console.log(`Number: ${winnerNumber} / Remaining: ${availableNumbers.length}`);
+
+            isSpinning = false;
+            if (availableNumbers.length > 0) {
+                document.getElementById('spin-btn').disabled = false;
+                // 次のスピンのためにフォーカスをボタンに戻す（エンターキー連打対応）
+                document.getElementById('spin-btn').focus();
+            } else {
+                document.getElementById('status-message').textContent = "FINISH!";
+                document.getElementById('spin-btn').textContent = "END";
+            }
+        }
+
+        function displayResult(number) {
+            document.getElementById('current-number').textContent = number;
+            // 結果が出た時のメッセージを大きく表示
+            const msg = document.getElementById('status-message');
+            msg.textContent = ""; 
+            
+            // 少ししたらメッセージを消す（数字を見やすくするため）
+            setTimeout(() => {
+                if(!isSpinning) msg.textContent = ""; 
+            }, 3000);
+        }
+
+        function updateHistoryUI() {
+            const listElement = document.getElementById('history-list');
+            listElement.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const div = document.createElement('div');
+                div.className = 'history-ball';
+                if (history[i]) {
+                    div.textContent = history[i];
+                    if (i === 0) div.classList.add('latest');
+                } else {
+                    div.textContent = '-';
+                }
+                listElement.appendChild(div);
+            }
+        }
+
+        function updateDebugInfo() {
+            document.getElementById('debug-info').textContent = `Remaining: ${availableNumbers.length}`;
+        }
+
+        function resetGame() {
+            if(confirm('リセットしますか？')) {
+                initGame();
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
