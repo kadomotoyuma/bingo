@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Bingo Machine</title>
+    <style>
+        /* レイアウトは前回と同じですが、少し見やすく調整しました */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333;
+            user-select: none; /* 文字選択を防止してアプリっぽくする */
+        }
+
+        #history-container {
+            width: 100%;
+            text-align: center;
+            height: 15%;
+        }
+        
+        h2 { font-size: 1rem; color: #666; margin-bottom: 10px; }
+
+        .history-list {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .history-ball {
+            width: 40px; height: 40px;
+            background-color: #ddd;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: #555;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .history-ball.latest {
+            background-color: #ff9800; color: white;
+            transform: scale(1.1); border: 2px solid #fff;
+        }
+
+        #main-display {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        #current-number {
+            font-size: 12rem; font-weight: 800; color: #333;
+            text-shadow: 3px 3px 0px #fff, 6px 6px 0px rgba(0,0,0,0.1);
+            line-height: 1;
+        }
+
+        #status-message {
+            margin-top: 20px; color: #888; font-size: 1.2rem; height: 30px;
+        }
+
+        /* 残り枚数表示（デバッグ用・安心感のため追加） */
+        #debug-info {
+            font-size: 0.8rem; color: #aaa; margin-top: 5px;
+        }
+
+        #controls {
+            height: 20%;
+            display: flex; align-items: center; gap: 20px;
+        }
+
+        button {
+            cursor: pointer; border: none; outline: none;
+            transition: all 0.2s; font-weight: bold;
+            font-size: 1.5rem; padding: 15px 40px;
+            border-radius: 50px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #spin-btn { background-color: #007aff; color: white; }
+        #spin-btn:hover { background-color: #005ecb; transform: translateY(-2px); }
+        #spin-btn:active { transform: translateY(0); }
+        #spin-btn:disabled { background-color: #ccc; cursor: not-allowed; transform: none; }
+
+        #reset-btn {
+            background-color: white; color: #ff3b30;
+            border: 2px solid #ff3b30; font-size: 1rem; padding: 10px 20px;
+        }
+        #reset-btn:hover { background-color: #fff0f0; }
+
+    </style>
+</head>
+<body>
+
+    <div id="history-container">
+        <h2>HISTORY</h2>
+        <div class="history-list" id="history-list"></div>
+    </div>
+
+    <div id="main-display">
+        <div id="current-number">00</div>
+        <div id="status-message">READY?</div>
+        <div id="debug-info">Remaining: 75</div>
+    </div>
+
+    <div id="controls">
+        <button id="reset-btn" onclick="resetGame()">RESET</button>
+        <button id="spin-btn" onclick="spin()">SPIN!</button>
+    </div>
+
+    <script>
+        // --- 設定エリア ---
+        const MAX_NUMBER = 75;
+        const MIN_NUMBER = 1;
+        
+        // --- 状態管理変数 ---
+        let availableNumbers = []; // まだ出ていない数字のリスト
+        let history = [];          // 出た数字の履歴
+        let isSpinning = false;    // 回転中フラグ（連打防止）
+
+        // ゲーム初期化
+        function initGame() {
+            availableNumbers = [];
+            // 1から75までを順番に配列に入れる
+            for (let i = MIN_NUMBER; i <= MAX_NUMBER; i++) {
+                availableNumbers.push(i);
+            }
+            
+            history = [];
+            isSpinning = false;
+            
+            // 画面リセット
+            updateHistoryUI();
+            document.getElementById('current-number').textContent = "00";
+            document.getElementById('status-message').textContent = "READY?";
+            document.getElementById('spin-btn').disabled = false;
+            document.getElementById('spin-btn').textContent = "SPIN!";
+            updateDebugInfo();
+            
+            console.log("Game Initialized. Pool size:", availableNumbers.length);
+        }
+
+        // スピン開始
+        function spin() {
+            // 連打防止 & 空チェック
+            if (isSpinning) return;
+            if (availableNumbers.length === 0) return;
+
+            isSpinning = true;
+            document.getElementById('spin-btn').disabled = true;
+            document.getElementById('status-message').textContent = "抽選中...";
+
+            // 演出用ループ
+            let count = 0;
+            const display = document.getElementById('current-number');
+            
+            const interval = setInterval(() => {
+                // 演出中は、配列の中からランダムに見せるだけ（取り出さない）
+                const tempIndex = Math.floor(Math.random() * availableNumbers.length);
+                display.textContent = availableNumbers[tempIndex];
+                count++;
+
+                if (count > 20) { // 演出の長さ
+                    clearInterval(interval);
+                    finalizeNumber();
+                }
+            }, 50);
+        }
+
+        // 結果確定（ここが最も重要なロジック）
+        function finalizeNumber() {
+            // 1. 現在の配列の長さの範囲でランダムなインデックスを決める
+            // Math.random() は 0以上 1未満 なので、lengthを掛けてfloorすると
+            // 必ず 0 ～ (length-1) の範囲に収まる。範囲外エラーは起きない。
+            const winnerIndex = Math.floor(Math.random() * availableNumbers.length);
+            
+            // 2. そのインデックスにある数字を取得
+            const winnerNumber = availableNumbers[winnerIndex];
+
+            // 安全装置（万が一のバグチェック）
+            if (winnerNumber === undefined || winnerNumber < MIN_NUMBER || winnerNumber > MAX_NUMBER) {
+                alert("致命的なエラー：範囲外の数字が検出されました。");
+                return;
+            }
+
+            // 3. 【重要】選ばれた数字を配列から削除する（splice）
+            // これにより、この数字は二度と availableNumbers に存在しなくなる
+            availableNumbers.splice(winnerIndex, 1);
+
+            // 4. 履歴に追加
+            history.unshift(winnerNumber);
+
+            // 5. 画面更新
+            displayResult(winnerNumber);
+            updateHistoryUI();
+            updateDebugInfo();
+            
+            // ログ出力（ブラウザのコンソールで確認可能）
+            console.log(`Number: ${winnerNumber} / Remaining: ${availableNumbers.length}`);
+
+            // 6. 終了判定
+            isSpinning = false;
+            if (availableNumbers.length > 0) {
+                document.getElementById('spin-btn').disabled = false;
+            } else {
+                document.getElementById('status-message').textContent = "ALL NUMBERS OUT!";
+                document.getElementById('spin-btn').textContent = "END";
+            }
+        }
+
+        // 画面表示更新系
+        function displayResult(number) {
+            document.getElementById('current-number').textContent = number;
+            document.getElementById('status-message').textContent = `Number ${number}!`;
+        }
+
+        function updateHistoryUI() {
+            const listElement = document.getElementById('history-list');
+            listElement.innerHTML = '';
+            // 最新5件を表示
+            for (let i = 0; i < 5; i++) {
+                const div = document.createElement('div');
+                div.className = 'history-ball';
+                if (history[i]) {
+                    div.textContent = history[i];
+                    if (i === 0) div.classList.add('latest');
+                } else {
+                    div.textContent = '-';
+                }
+                listElement.appendChild(div);
+            }
+        }
+
+        function updateDebugInfo() {
+            // 画面上の小さな文字で残り枚数を表示
+            document.getElementById('debug-info').textContent = `Remaining: ${availableNumbers.length}`;
+        }
+
+        function resetGame() {
+            if(confirm('現在の履歴を消去し、新しいゲームをはじめますか？')) {
+                initGame();
+            }
+        }
+
+        // 起動時実行
+        initGame();
+    </script>
+</body>
+</html>
