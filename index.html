@@ -277,7 +277,7 @@
         function displayResult(number) {
             document.getElementById('current-number').textContent = number;
             const msg = document.getElementById('status-message');
-            msg.textContent = "BINGO!"; 
+            msg.textContent = ""; 
             setTimeout(() => {
                 if(!isSpinning) msg.textContent = ""; 
             }, 3000);
