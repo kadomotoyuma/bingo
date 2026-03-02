@@ -4,158 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wedding Invitation</title>
-    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-pink: #fff5f7;
-            --main-pink: #f8bbd0;
-            --accent-pink: #d81b60;
-            --text-dark: #444;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Shippori Mincho', serif;
-            color: var(--text-dark);
-            background-color: #fff;
-            overflow-x: hidden;
-        }
-
-        /* メイン画像（スマホで見ても顔が隠れないよう調整） */
-        .hero {
-            height: 100vh;
-            background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('image.png') no-repeat center center/cover;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: white;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
-
-        .hero h1 { font-size: 2.5rem; margin-bottom: 10px; }
-        .hero p { font-size: 1.2rem; letter-spacing: 0.2em; }
-
-        /* セクション共通 */
-        section {
-            padding: 80px 20px;
-            max-width: 600px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        h2 {
-            font-size: 1.5rem;
-            color: var(--accent-pink);
-            margin-bottom: 40px;
-            position: relative;
-            display: inline-block;
-        }
-
-        h2::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-            height: 1px;
-            background: var(--accent-pink);
-        }
-
-        /* プロフィール（スマホで縦、PCで横） */
-        .profile-flex {
-            display: flex;
-            flex-direction: column;
-            gap: 40px;
-            align-items: center;
-        }
-
-        @media (min-width: 768px) {
-            .profile-flex { flex-direction: row; justify-content: center; }
-        }
-
-        .profile-card img {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid var(--main-pink);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        /* 添付写真の立ち位置に合わせて切り抜き位置を調整 */
-        .bride-img { object-position: 30% 20%; } /* 左側の新婦様 */
-        .groom-img { object-position: 68% 20%; } /* 右側の新郎様（ユウマ様） */
-
-        .profile-card h3 { margin-top: 15px; font-size: 1.2rem; }
-
-        /* Googleフォームエリア */
-        .rsvp-container {
-            background-color: var(--bg-pink);
-            padding: 30px 10px;
-            border-radius: 20px;
-            margin-top: 20px;
-        }
-
-        iframe {
-            width: 100%;
-            height: 700px; /* フォームの長さに合わせて適宜調整 */
-            border: none;
-        }
-
-        footer {
-            background-color: #f9f9f9;
-            padding: 40px;
-            font-size: 0.8rem;
-            color: #999;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&family=Pacifico&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="hero">
-        <div>
-            <h1>Wedding Invitation</h1>
-            <p>Yuma & Partner</p>
-            <p style="font-size: 0.9rem;">2026.04.21</p>
+    <header class="hero">
+        <div class="hero-content">
+            <h1 class="title">Happy Wedding</h1>
+            <p class="names">Taro & Hanako</p>
+            <p class="date">2026.06.20</p>
         </div>
-    </div>
+    </header>
 
-    <section>
-        <h2>Greeting</h2>
-        <p>拝啓　陽春の候<br>皆様には益々ご健勝のこととお慶び申し上げます</p>
-        <p>このたび　私たちは結婚することとなりました<br>日頃お世話になっている皆様をお招きし<br>感謝の気持ちを込めて小宴を催したく存じます</p>
-        <p>ぜひご出席いただければ幸いです</p>
-    </section>
+    <main>
+        <section class="reveal-box">
+            <h2>Greeting</h2>
+            <p>私たちは結婚いたします！<br>
+               大切な皆様と楽しい時間を過ごせることを<br>
+               心より楽しみにしています。</p>
+        </section>
 
-    <section>
-        <h2>Profile</h2>
-        <div class="profile-flex">
-            <div class="profile-card">
-                <img src="image.png" alt="Bride" class="bride-img">
-                <h3>Bride</h3>
-                <p>新婦</p>
-            </div>
-            <div class="profile-card">
-                <img src="image.png" alt="Groom" class="groom-img">
-                <h3>Groom: Yuma</h3>
-                <p>新郎</p>
-            </div>
-        </div>
-    </section>
+        <section class="reveal-box delay-1">
+            <h2>Information</h2>
+            <table class="info-table">
+                <tr><th>Date</th><td>2026年6月20日 (土)</td></tr>
+                <tr><th>Time</th><td>12:00 受付 / 13:00 開宴</td></tr>
+                <tr><th>Place</th><td>ザ・ポップテラス 表参道</td></tr>
+            </table>
+        </section>
 
-    <section id="rsvp">
-        <h2>RSVP</h2>
-        <p>お手数ですが　下記フォームより<br>ご出欠をお知らせください</p>
-        <div class="rsvp-container">
-            <iframe src="ここにGoogleフォームのURL?embedded=true">読み込んでいます…</iframe>
-        </div>
-    </section>
+        <section class="reveal-box delay-2">
+            <a href="#" class="rsvp-button">ご出席連絡はこちら</a>
+        </section>
+    </main>
 
     <footer>
-        <p>© 2026 Yuma's Wedding</p>
+        <p>&copy; 2026 Taro & Hanako</p>
     </footer>
 
 </body>
