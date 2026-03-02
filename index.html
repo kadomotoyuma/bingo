@@ -1,302 +1,34 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Simple Party Bingo</title>
-    <style>
-        /* --- 基本設定 --- */
-        body {
-            font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0; padding: 20px 10px;
-            color: #333;
-            user-select: none; -webkit-user-select: none;
-            overflow-y: auto; min-height: 100vh;
-            display: flex; flex-direction: column; align-items: center;
-            background-image: radial-gradient(#e2e2e2 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
+function createWeddingForm() {
+  // フォームの名前
+  var form = FormApp.create('結婚式招待状（回答用）');
+  form.setTitle('Wedding Invitation RSVP');
+  form.setDescription('ご多忙の折、誠に恐縮ではございますが、出欠の確認をさせていただきたく存じます。\n\n回答期限：2026年3月31日');
 
-        /* --- 紙吹雪コンテナ --- */
-        #confetti-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 9999; overflow: hidden;
-        }
-        .confetti {
-            position: absolute; width: 10px; height: 10px; opacity: 0.8;
-        }
+  // 1. お名前
+  form.addTextItem().setTitle('お名前').setRequired(true);
 
-        /* --- 祝福オーバーレイ（手動ビンゴ用） --- */
-        #bingo-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            z-index: 5000;
-            display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-        }
-        #bingo-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
-        
-        .bingo-title {
-            font-size: 15vw; color: #ffeb3b;
-            text-shadow: 0 0 20px #e91e63, 0 0 40px #e91e63;
-            margin: 0; line-height: 1;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .bingo-subtitle {
-            font-size: 3vw; color: white; margin-top: 20px; letter-spacing: 5px;
-            text-transform: uppercase;
-        }
-        .bingo-close-msg {
-            position: absolute; bottom: 50px; color: #aaa; font-size: 1rem;
-            font-weight: normal;
-        }
+  // 2. 出欠
+  form.addMultipleChoiceItem()
+    .setTitle('ご出席')
+    .setChoices([
+      form.createChoice('ご出席'),
+      form.createChoice('ご欠席')
+    ])
+    .setRequired(true);
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+  // 3. メールアドレス
+  form.addTextItem().setTitle('メールアドレス').setRequired(true);
 
-        /* --- メインエリア --- */
-        #main-section {
-            display: flex; flex-direction: column; align-items: center;
-            width: 100%; max-width: 800px;
-            background: rgba(255,255,255,0.85);
-            padding: 40px 20px; /* 上下の余白を少し増やしました */
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            margin-bottom: 30px; position: relative;
-        }
+  // 4. アレルギーの有無
+  form.addParagraphTextItem().setTitle('アレルギー等、配慮が必要な食材がございましたらご記入ください');
 
-        /* 履歴表示を削除したので、数字をメインにします */
-        #current-number {
-            font-size: min(35vw, 35vh); /* 少し大きくしました */
-            font-weight: 900; color: #222;
-            line-height: 1; text-shadow: 4px 4px 0px #fff;
-            margin: 10px 0 20px 0;
-        }
+  // 5. メッセージ
+  form.addParagraphTextItem().setTitle('メッセージ');
 
-        #status-message {
-            color: #e91e63; font-size: 1.5rem; font-weight: bold; height: 30px;
-        }
-        #debug-info { position: absolute; top: 15px; right: 20px; font-size: 1rem; color: #aaa; }
-
-        /* --- ボタンエリア --- */
-        #controls {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;
-            margin-top: 10px; width: 100%;
-        }
-        button {
-            cursor: pointer; border: none; outline: none;
-            font-weight: bold; font-size: 1.2rem; padding: 15px 30px;
-            border-radius: 50px; box-shadow: 0 5px 0px rgba(0,0,0,0.15);
-        }
-        button:active { margin-top: 4px; border-bottom-width: 0px; box-shadow: none; transform: translateY(4px); }
-
-        #spin-btn { 
-            background-color: #007aff; color: white; border-bottom: 5px solid #0056b3; 
-            flex-grow: 2; font-size: 2rem; min-width: 200px;
-        }
-        
-        #manual-bingo-btn {
-            background-color: #ffc107; color: #333; border-bottom: 5px solid #ff8f00;
-            flex-grow: 1; min-width: 150px;
-        }
-        #manual-bingo-btn:hover { background-color: #ffca28; }
-
-        #reset-btn {
-            background-color: white; color: #ff3b30; border: 2px solid #ff3b30; 
-            box-shadow: none; font-size: 1rem; padding: 10px 20px;
-        }
-
-        /* --- グリッド --- */
-        #grid-section {
-            width: 100%; max-width: 800px; background: rgba(255,255,255,0.6);
-            padding: 20px; border-radius: 20px; text-align: center;
-        }
-        h3 { margin: 0 0 15px 0; color: #666; font-size: 1rem; letter-spacing: 1px; }
-
-        #history-grid {
-            display: grid; grid-template-columns: repeat(15, 1fr); gap: 6px;
-        }
-        .grid-cell {
-            aspect-ratio: 1/1; background-color: #fff; border: 1px solid #ddd;
-            border-radius: 4px; display: flex; align-items: center; justify-content: center;
-            font-size: 0.9rem; color: #ccc; transition: all 0.3s;
-        }
-        .grid-cell.hit { background-color: #ff9800; color: white; border-color: #ff9800; font-weight: bold; }
-        .grid-cell.hit.newest { background-color: #e91e63; border-color: #e91e63; animation: pulse 1.5s infinite; z-index: 10; transform: scale(1.1); }
-
-        @keyframes pulse { 0% { transform: scale(1.1); } 50% { transform: scale(1.2); box-shadow: 0 0 15px rgba(233, 30, 99, 0.5); } 100% { transform: scale(1.1); } }
-
-        /* スマホ対応 */
-        @media (max-width: 768px) {
-            #main-section { padding: 20px 10px; }
-            #history-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
-            #controls { flex-direction: column; }
-            #spin-btn, #manual-bingo-btn, #reset-btn { width: 100%; }
-            .bingo-title { font-size: 20vw; }
-            .bingo-subtitle { font-size: 5vw; }
-            .grid-cell { font-size: 0.8rem; }
-        }
-    </style>
-</head>
-<body>
-
-    <div id="confetti-container"></div>
-
-    <div id="bingo-overlay" onclick="closeBingoMode()">
-        <h1 class="bingo-title">BINGO!</h1>
-        <div class="bingo-subtitle">CONGRATULATIONS</div>
-        <div class="bingo-close-msg">Tap screen to continue</div>
-    </div>
-
-    <div id="main-section">
-        <div id="debug-info">Remaining: 75</div>
-        <div id="current-number">00</div>
-        <div id="status-message">READY?</div>
-
-        <div id="controls">
-            <button id="reset-btn" onclick="resetGame()">RESET</button>
-            <button id="manual-bingo-btn" onclick="triggerManualBingo()">祝 BINGO!</button>
-            <button id="spin-btn" onclick="spin()">SPIN!</button>
-        </div>
-    </div>
-
-    <div id="grid-section">
-        <h3>HISTORY CARD</h3>
-        <div id="history-grid"></div>
-    </div>
-
-    <script>
-        const MAX_NUMBER = 75;
-        let availableNumbers = [];
-        let isSpinning = false;
-
-        function initGame() {
-            availableNumbers = [];
-            for (let i = 1; i <= MAX_NUMBER; i++) availableNumbers.push(i);
-            isSpinning = false;
-            
-            document.getElementById('current-number').textContent = "00";
-            document.getElementById('status-message').textContent = "READY?";
-            document.getElementById('spin-btn').disabled = false;
-            document.getElementById('spin-btn').textContent = "SPIN!";
-            
-            updateDebugInfo();
-            initGrid();
-        }
-
-        function initGrid() {
-            const grid = document.getElementById('history-grid');
-            grid.innerHTML = '';
-            for (let i = 1; i <= MAX_NUMBER; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'grid-cell';
-                cell.id = `cell-${i}`;
-                cell.textContent = i;
-                grid.appendChild(cell);
-            }
-        }
-
-        function spin() {
-            if (isSpinning || availableNumbers.length === 0) return;
-            isSpinning = true;
-            document.getElementById('spin-btn').disabled = true;
-            document.getElementById('status-message').textContent = "";
-            
-            let count = 0;
-            const display = document.getElementById('current-number');
-            let speed = 50;
-
-            const loop = () => {
-                display.textContent = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
-                count++;
-                if (count < 20) setTimeout(loop, speed);
-                else if (count < 30) { speed += 20; setTimeout(loop, speed); }
-                else finalize();
-            };
-            loop();
-        }
-
-        function finalize() {
-            const idx = Math.floor(Math.random() * availableNumbers.length);
-            const val = availableNumbers[idx];
-            availableNumbers.splice(idx, 1);
-            // 履歴配列への追加処理は削除（グリッドで管理するため）
-
-            document.getElementById('current-number').textContent = val;
-            updateDebugInfo();
-            
-            // グリッド更新
-            document.querySelectorAll('.newest').forEach(el => el.classList.remove('newest'));
-            const cell = document.getElementById(`cell-${val}`);
-            if(cell) cell.classList.add('hit', 'newest');
-
-            // 紙吹雪（小）
-            launchConfetti(15); 
-
-            isSpinning = false;
-            if (availableNumbers.length > 0) {
-                document.getElementById('spin-btn').disabled = false;
-                document.getElementById('spin-btn').focus();
-            } else {
-                document.getElementById('spin-btn').textContent = "END";
-                document.getElementById('status-message').textContent = "FINISH!";
-            }
-        }
-
-        function updateDebugInfo() {
-            document.getElementById('debug-info').textContent = `Remaining: ${availableNumbers.length}`;
-        }
-
-        function resetGame() {
-            if(confirm('リセットしますか？')) initGame();
-        }
-
-        // --- 手動ビンゴ演出機能 ---
-        function triggerManualBingo() {
-            const overlay = document.getElementById('bingo-overlay');
-            overlay.classList.add('active');
-            
-            launchConfetti(100);
-            setTimeout(() => launchConfetti(100), 400);
-            setTimeout(() => launchConfetti(100), 800);
-        }
-
-        function closeBingoMode() {
-            const overlay = document.getElementById('bingo-overlay');
-            overlay.classList.remove('active');
-        }
-
-        // --- 紙吹雪システム ---
-        function launchConfetti(amount = 50) {
-            const container = document.getElementById('confetti-container');
-            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
-            
-            for (let i = 0; i < amount; i++) {
-                const c = document.createElement('div');
-                c.className = 'confetti';
-                c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                c.style.left = Math.random() * 100 + 'vw';
-                c.style.top = -10 + 'px';
-                c.style.width = Math.random() * 10 + 5 + 'px';
-                c.style.height = Math.random() * 5 + 5 + 'px';
-                c.style.transform = `rotate(${Math.random() * 360}deg)`;
-                
-                container.appendChild(c);
-
-                const duration = Math.random() * 2000 + 1500;
-                c.animate([
-                    { transform: `translateY(0) rotate(0)`, opacity: 1 },
-                    { transform: `translateY(100vh) rotate(${Math.random() * 720}deg)`, opacity: 0 }
-                ], { duration: duration, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' });
-
-                setTimeout(() => c.remove(), duration);
-            }
-        }
-
-        initGame();
-    </script>
-</body>
-</html>
+  // 作成されたフォームのURLを表示
+  Logger.log('編集用URL: ' + form.getEditUrl());
+  Logger.log('公開用（埋め込み用）URL: ' + form.getPublishedUrl());
+  
+  // 完了メッセージ
+  var ui = SpreadsheetApp.getUi; // ダミー。実行完了を確認してください。
+}
