@@ -1,0 +1,98 @@
+/* 全体の基本設定 */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    background-color: #fff9f0; /* 優しいクリーム色 */
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* ヒーローセクション */
+.hero {
+    height: 100vh;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+}
+
+.title {
+    font-family: 'Pacifico', cursive;
+    font-size: 4rem;
+    margin-bottom: 0;
+    text-shadow: 3px 3px 0px #ff4e50;
+}
+
+.names {
+    font-size: 1.5rem;
+    letter-spacing: 0.2rem;
+}
+
+/* スクロールで現れるアニメーションの設定 */
+.reveal-box {
+    max-width: 500px;
+    margin: 100px auto;
+    padding: 40px 20px;
+    background: white;
+    border: 4px solid #333; /* ポップな太枠 */
+    border-radius: 30px;
+    box-shadow: 10px 10px 0px #ffd166; /* 影をずらしてポップに */
+    text-align: center;
+    
+    /* アニメーションの初期状態 */
+    opacity: 0;
+    transform: translateY(50px);
+    animation: reveal linear forwards;
+    animation-timeline: view(); /* スクロールに合わせて動く最新プロパティ */
+    animation-range: entry 20% cover 40%;
+}
+
+@keyframes reveal {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* コンテンツ詳細 */
+h2 {
+    color: #ef476f;
+    font-size: 2rem;
+    text-decoration: underline;
+}
+
+.info-table {
+    margin: 0 auto;
+    text-align: left;
+}
+
+.info-table th {
+    padding: 10px;
+    color: #118ab2;
+}
+
+/* RSVPボタン */
+.rsvp-button {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #06d6a0;
+    color: white;
+    text-decoration: none;
+    border-radius: 50px;
+    border: 3px solid #333;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+
+.rsvp-button:hover {
+    transform: scale(1.1) rotate(-3deg);
+}
+
+footer {
+    text-align: center;
+    padding: 50px;
+    font-size: 0.8rem;
+}
